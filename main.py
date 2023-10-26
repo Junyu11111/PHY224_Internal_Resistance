@@ -1,3 +1,6 @@
+import os
+
+import numpy
 from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
 import numpy as np
@@ -16,27 +19,25 @@ def characterize_fit(y, prediction, uncertainty, param_num):
     return np.sum(((y - prediction) / uncertainty) ** 2) / (len(y) - param_num)
 
 
-def analysis(current_lst, current_uncertainty_lst, voltage_lst, voltage_uncertainty_lst, data_set_name,
+def analysis(current, current_uncertainty, voltage, voltage_uncertainty,
              graph_name):
-    plt.figure("Current at each Volt For {}".format(graph_name))
-    plt.title("Current at each Volt For {}".format(graph_name))
+    # plotting the volt vs curr graph
+    plt.figure("Voltage at each Current For {}".format(graph_name))
+    plt.title("Voltage at each Current For {}".format(graph_name))
     plt.ylabel("Voltage(V)")
     plt.xlabel("Current(mA)")
-    current = np.empty((0, 0))
-    voltage = np.empty((0, 0))
-    voltage_uncertainty = np.empty((0, 0))
-    for i in range(len(voltage_lst)):
-        plt.errorbar(current_lst[i], voltage_lst[i], xerr=current_uncertainty_lst[i], yerr=voltage_uncertainty_lst[i],
-                     marker='o', markersize=2, label="{} data with error bar".format(data_set_name))
-        current = np.append(current, current_lst[i])
-        voltage = np.append(voltage, voltage_lst[i])
-        voltage_uncertainty = np.append(voltage_uncertainty, voltage_uncertainty_lst[i])
+    plt.errorbar(current, voltage, xerr=current_uncertainty,
+                 yerr=voltage_uncertainty, ls='', lw=1, marker='o', markersize=2,
+                 label="figs/{}data with error bar".format(graph_name))
     popt, pcov = curve_fit(linear_function, current, voltage, sigma=voltage_uncertainty,
                            absolute_sigma=True)
     print("{} resistance:{}".format(graph_name, -popt[1]))
-    voltage_prediction = linear_function(np.sort(voltage), *popt)
-    plt.plot(np.sort(current), voltage_prediction, label="best fit line")
+    voltage_prediction = linear_function(current, *popt)
+    plt.plot(current, voltage_prediction, label="best fit line")
     plt.legend()
+    plt.savefig("figs/Voltage at each Current For {}".format(graph_name).replace(".", " point "))
+
+    # plotting the residual
     plt.figure("{} residual".format(graph_name))
     plt.title("{} residual".format(graph_name))
     plt.ylabel("Voltage(V)")
@@ -45,9 +46,11 @@ def analysis(current_lst, current_uncertainty_lst, voltage_lst, voltage_uncertai
     plt.errorbar(current, voltage - voltage_prediction, yerr=voltage_uncertainty, ls='', lw=1, marker='o', markersize=2,
                  label="{} residual".format(graph_name))
     print("{} chi_sq = {}".format(graph_name, characterize_fit(voltage, voltage_prediction, voltage_uncertainty, 2)))
+    plt.savefig("figs/{} residual".format(graph_name).replace(".", " point "))
 
 
-def battery(path, name):
+def process_data_set(path, name):
+    # loading the data from the csv file
     volt_data, curr_data, volt_lastdig_err, volt_per_error, curr_lastdig_err, curr_per_err = np.loadtxt(
         path, skiprows=1,
         delimiter=',', unpack=True, usecols=(1, 0, 6, 5, 4, 3))
@@ -57,31 +60,12 @@ def battery(path, name):
     print(curr_measurement_error)
     volt_measurement_error = measurement_error(volt_data, volt_lastdig_err,
                                                volt_per_error)
-    analysis(np.array(curr_data, ndmin=2), np.array(curr_measurement_error, ndmin=2),
-             np.array(volt_data, ndmin=2),
-             np.array(volt_measurement_error, ndmin=2), "battery", name)
-
-
-def power_supply(path, name):
-    volt_data_lst = np.empty((0, 0))
-    curr_data_lst = np.empty((0, 0))
-    volt_measurement_error_lst = np.empty((0, 0))
-    curr_measurement_error_lst = np.empty((0, 0))
-    for i in range(len(path)):
-        volt_data, curr_data, volt_lastdig_err, volt_per_error, curr_lastdig_err, curr_per_err = np.loadtxt(
-            path[i], skiprows=1,
-            delimiter=',', unpack=True, usecols=(1, 0, 6, 5, 4, 3))
-        curr_measurement_error = measurement_error(curr_data, curr_lastdig_err,
-                                                   curr_per_err)
-        volt_measurement_error = measurement_error(volt_data, volt_lastdig_err,
-                                                   volt_per_error)
-        volt_data_lst = np.append(volt_data_lst, volt_data, axis=0)
-        curr_data_lst = np.append(curr_data_lst, curr_data, axis=0)
-        volt_measurement_error_lst = np.append(volt_measurement_error_lst, volt_measurement_error, axis=0)
-        curr_measurement_error_lst = np.append(curr_measurement_error_lst, curr_measurement_error, axis=0)
-    analysis(curr_data_lst, curr_measurement_error_lst, volt_data_lst, volt_measurement_error_lst, path, name)
+    analysis(curr_data, curr_measurement_error, volt_data, volt_measurement_error, name.replace(".csv", ""))
 
 
 if __name__ == "__main__":
-    battery("Internal Resistance of the Power Supply Data - Battery, Option 1 (1).csv", "battery option 1")
+    # run on every file in \data
+    directory = 'data'
+    for filename in os.listdir(directory):
+        process_data_set(os.path.join(directory, filename), filename)
     plt.show()
