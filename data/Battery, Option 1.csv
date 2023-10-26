@@ -1,0 +1,5 @@
+Current(mA),Voltage(V),Factory Resistance,Current Percentage Error,Current Last Digit Error,Voltage Percentage Error,Voltage Last Digit Error
+62.14,6.342,100,0.2,0.05,0.05,0.002
+29.482,6.402,220,0.2,0.005,0.05,0.002
+19.603,6.221,320,0.2,0.005,0.05,0.002
+13.483,6.301,470,0.2,0.005,0.05,0.002
