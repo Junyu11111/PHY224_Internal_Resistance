@@ -36,7 +36,6 @@ def analysis(current, current_uncertainty, voltage, voltage_uncertainty,
     plt.plot(current, voltage_prediction, label="best fit line")
     plt.legend()
     plt.savefig("figs/Voltage at each Current For {}".format(graph_name).replace(".", " point "))
-
     # plotting the residual
     plt.figure("{} residual".format(graph_name))
     plt.title("{} residual".format(graph_name))
