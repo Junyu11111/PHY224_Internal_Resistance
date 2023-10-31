@@ -19,42 +19,51 @@ def characterize_fit(y, prediction, uncertainty, param_num):
 
 
 def plot_volt_vs_curr(current, current_uncertainty, voltage, voltage_uncertainty, graph_name):
-    plt.title("Voltage at each Current For {}".format(graph_name))
-    plt.ylabel("Voltage(V)")
-    plt.xlabel("Current(mA)")
     plt.errorbar(current, voltage, xerr=current_uncertainty,
                  yerr=voltage_uncertainty, ls='', lw=1, marker='o', markersize=2,
-                 label="figs/{}data with error bar".format(graph_name))
+                 label="{} data with error bar".format(graph_name))
     popt, pcov = curve_fit(linear_function, current, voltage, sigma=voltage_uncertainty,
                            absolute_sigma=True)
     voltage_prediction = linear_function(current, *popt)
-    plt.plot(current, voltage_prediction, label="best fit line")
+    plt.plot(current, voltage_prediction, label="{} best fit line".format(graph_name))
     # plt.legend()
     print("{} resistance:{}".format(graph_name, -popt[0]))
     return voltage_prediction
 
 
 def plot_residual(x, y, uncertainty, prediction, graph_name):
-    plt.plot(x, np.zeros_like(y), "g-", label="Z = 0")
-    plt.errorbar(x, y - prediction, yerr=uncertainty, ls='', lw=1, marker='o', markersize=2, label="residual")
+    plt.plot(x, np.zeros_like(y), "g--")
+    plt.errorbar(x, y - prediction, yerr=uncertainty, ls='', lw=1, marker='o', markersize=2,
+                 label="{} residual".format(graph_name))
     print("{} chi_sq = {}".format(graph_name, characterize_fit(y, prediction, uncertainty, 2)))
 
 
 def analysis(csv_files_path, data_dir):
-    plot_name = re.sub(', Option [1-2]|\.csv', "", csv_files_path[0]). replace(".", " point ")
+    plot_name = re.sub(', Option [1-2]|\.csv', "", csv_files_path[0]).replace(".", " point ")
     print(plot_name)
     plt.figure(plot_name)
     for i in range(len(csv_files_path)):
         subplot_name = csv_files_path[i].replace(".csv", "")
-        volt_data, curr_data, volt_measurement_error, curr_measurement_error = process_data_set(os.path.join(data_dir, csv_files_path[i]))
+        volt_data, curr_data, volt_measurement_error, curr_measurement_error = process_data_set(os.path.join(data_dir,
+                                                                                                             csv_files_path[
+                                                                                                                 i]))
         print(volt_data, curr_data, volt_measurement_error, curr_measurement_error)
-        plt.subplot(2, 2, i*2 + 1)
+        plt.subplot(2, 1, 1)
+        plt.title("Voltage at each Current For {}".format(plot_name))
+        plt.ylabel("Voltage(V)")
+        plt.xlabel("Current(mA)")
+        print(subplot_name)
         prediction = plot_volt_vs_curr(curr_data, curr_measurement_error, volt_data, volt_measurement_error,
                                        subplot_name)
-        plt.subplot(2, 2, i*2 + 2)
+        plt.legend(fontsize="6.5")
+        plt.subplot(2, 1, 2)
+        plt.title("Residual For {}".format(plot_name))
+        plt.ylabel("Voltage(V)")
+        plt.xlabel("Current(mA)")
         plot_residual(curr_data, volt_data, volt_measurement_error, prediction, subplot_name)
-        plt.tight_layout()
-    plt.savefig("figs/" + plot_name)
+        plt.legend(fontsize="6.5")
+    plt.tight_layout()
+    plt.savefig("figs/" + plot_name, dpi=300)
 
 
 def process_data_set(path):
