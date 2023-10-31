@@ -33,7 +33,7 @@ def plot_volt_vs_curr(current, current_uncertainty, voltage, voltage_uncertainty
 
 def plot_residual(x, y, uncertainty, prediction, graph_name):
     plt.plot(x, np.zeros_like(y), "g--")
-    plt.errorbar(x, y - prediction, yerr=uncertainty, ls='', lw=1, marker='o', markersize=2,
+    plt.errorbar(x, y - prediction, yerr=uncertainty, ls='', lw=1, marker='o', markersize=2, capsize=3, capthick=1,
                  label="{} residual".format(graph_name))
     print("{} chi_sq = {}".format(graph_name, characterize_fit(y, prediction, uncertainty, 2)))
 
