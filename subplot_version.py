@@ -39,7 +39,7 @@ def plot_residual(x, y, uncertainty, prediction, graph_name):
 
 
 def analysis(csv_files_path, data_dir):
-    plot_name = re.sub(', Option [1-2]|\.csv', "", csv_files_path[0]).replace(".", " point ")
+    plot_name = re.sub(', Option [1-2]|\.csv', "", csv_files_path[0])
     print(plot_name)
     plt.figure(plot_name)
     for i in range(len(csv_files_path)):
@@ -63,7 +63,7 @@ def analysis(csv_files_path, data_dir):
         plot_residual(curr_data, volt_data, volt_measurement_error, prediction, subplot_name)
         plt.legend(fontsize="6.5")
     plt.tight_layout()
-    plt.savefig("figs/" + plot_name, dpi=300)
+    plt.savefig("figs/" + plot_name.replace(".", ","), dpi=300)
 
 
 def process_data_set(path):
