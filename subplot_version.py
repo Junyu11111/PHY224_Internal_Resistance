@@ -26,19 +26,20 @@ def plot_volt_vs_curr(current, current_uncertainty, voltage, voltage_uncertainty
                            absolute_sigma=True)
     voltage_prediction = linear_function(current, *popt)
     plt.plot(current, voltage_prediction, label="{} best fit line".format(graph_name))
-    # plt.legend()
     print("{} resistance:{}".format(graph_name, -popt[0]))
-    return voltage_prediction
+    return voltage_prediction, -popt[0], np.sqrt(np.diag(pcov))[0]
 
 
 def plot_residual(x, y, uncertainty, prediction, graph_name):
     plt.plot(x, np.zeros_like(y), "g--")
     plt.errorbar(x, y - prediction, yerr=uncertainty, ls='', lw=1, marker='o', markersize=2, capsize=3, capthick=1,
                  label="{} residual".format(graph_name))
-    print("{} chi_sq = {}".format(graph_name, characterize_fit(y, prediction, uncertainty, 2)))
+    chi_sq = characterize_fit(y, prediction, uncertainty, 2)
+    print("{} chi_sq = {}".format(graph_name, chi_sq))
+    return chi_sq
 
 
-def analysis(csv_files_path, data_dir):
+def analysis(csv_files_path, data_dir, resistance_dict, resistance_uncertainty_dict, chi_sq_dict):
     plot_name = re.sub(', Option [1-2]|\.csv', "", csv_files_path[0])
     print(plot_name)
     plt.figure(plot_name)
@@ -53,14 +54,18 @@ def analysis(csv_files_path, data_dir):
         plt.ylabel("Voltage(V)")
         plt.xlabel("Current(mA)")
         print(subplot_name)
-        prediction = plot_volt_vs_curr(curr_data, curr_measurement_error, volt_data, volt_measurement_error,
-                                       subplot_name)
+        prediction, resistance, resistance_uncertainty = plot_volt_vs_curr(curr_data, curr_measurement_error,
+                                                                           volt_data, volt_measurement_error,
+                                                                           subplot_name)
+        resistance_dict[subplot_name] = resistance
+        resistance_uncertainty_dict[subplot_name] = resistance_uncertainty
         plt.legend(fontsize="6.5")
         plt.subplot(2, 1, 2)
         plt.title("Residual For {}".format(plot_name))
         plt.ylabel("Voltage(V)")
         plt.xlabel("Current(mA)")
-        plot_residual(curr_data, volt_data, volt_measurement_error, prediction, subplot_name)
+        chi_sq_dict[subplot_name] = plot_residual(curr_data, volt_data, volt_measurement_error, prediction,
+                                                  subplot_name)
         plt.legend(fontsize="6.5")
     plt.tight_layout()
     plt.savefig("figs/" + plot_name.replace(".", ","), dpi=300)
@@ -96,10 +101,45 @@ def group_data_set(unsorted_list):
     return groups_copy
 
 
+def plot_data_range(data_dict, uncertainty_dict):
+    plt.xlabel("Ohm")
+    count = 0
+    ax = plt.gca()
+    ax.axes.get_yaxis().set_visible(False)
+    for k in data_dict:
+        plt.errorbar(data_dict[k]*1000, count, xerr=uncertainty_dict[k]*1000, label=k, marker="x", capsize=3, capthick=1)
+        count += 1
+    plt.legend()
+
+
 if __name__ == "__main__":
     # run on every file in \data
     directory = 'data'
     grouped_data = group_data_set(os.listdir(directory))
     print(grouped_data)
+    resistance_dictionary = {}
+    resistance_uncertainty_dictionary = {}
+    chi_sq_dictionary = {}
     for j in grouped_data:
-        analysis(grouped_data[j], directory)
+        analysis(grouped_data[j], directory, resistance_dictionary, resistance_uncertainty_dictionary,
+                 chi_sq_dictionary)
+    print(resistance_dictionary)
+    print(resistance_uncertainty_dictionary)
+    print(chi_sq_dictionary)
+    resistance_option1_dictionary = {}
+    resistance_option2_dictionary = {}
+    resistance_uncertainty_option1_dictionary = {}
+    resistance_uncertainty_option2_dictionary = {}
+    for i in resistance_dictionary:
+        if "Option 1" in i and "Battery" not in i:
+            resistance_option1_dictionary[i] = resistance_dictionary[i]
+            resistance_uncertainty_option1_dictionary[i] = resistance_uncertainty_dictionary[i]
+        elif "Option 2" in i and "Battery" not in i:
+            resistance_option2_dictionary[i] = resistance_dictionary[i]
+            resistance_uncertainty_option2_dictionary[i] = resistance_uncertainty_dictionary[i]
+    plt.figure("range option 1")
+    plot_data_range(resistance_option1_dictionary, resistance_uncertainty_option1_dictionary)
+    plt.savefig("figs/uncertainty range option 1")
+    plt.figure("range option 2")
+    plot_data_range(resistance_option2_dictionary, resistance_uncertainty_option2_dictionary)
+    plt.savefig("figs/uncertainty range option 2")
